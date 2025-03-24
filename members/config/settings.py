@@ -153,8 +153,6 @@ USE_L10N = True		 # 지역화(localization)
 USE_TZ = False		 # Django 시간대
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
 
