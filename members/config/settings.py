@@ -1,5 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
+import os
+
 
 AUTH_USER_MODEL = 'account.User'
 
@@ -31,7 +33,8 @@ INSTALLED_APPS = [
     'account',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
-    'drf_yasg'
+    'drf_yasg',
+    'celery'
 ]
 
 MIDDLEWARE = [
@@ -159,3 +162,25 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# EMAIL
+
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND')
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS') == 'True'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL') == 'True'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+
+
+
+## 해당 기능은 Window에서 지원되지 않아 Docker 탑재 후에 테스팅 해볼 예정
+# Celery 기본 브로커 설정 (Redis)
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+# JSON 직렬화 설정
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'

@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-
+from .utils import send_verification_email_task
 
 User = get_user_model()
 
@@ -13,15 +13,21 @@ class SignupSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'profile_pic', 'intro', 'password')
 
     def create(self, validated_data):
-        # create_user를 사용하면 비밀번호 해싱 등이 처리됩니다.
-        return User.objects.create_user(
+        user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
             profile_pic=validated_data.get('profile_pic'),
-            intro=validated_data.get('intro', '')
+            intro=validated_data.get('intro', ''),
+            is_active=False
         )
 
+        request = self.context.get('request')
+        if request:
+            domain = request.build_absolute_uri('/')[:-1]  # ex: http://localhost:8000
+            send_verification_email_task.delay(user.id, domain)  # 🔥 비동기 처리
+
+        return user
 
 
 

@@ -16,3 +16,7 @@ class User(AbstractUser):
         max_length=255, unique=True,
         error_messages={"unique": "이미 사용중인 이메일"}
     )
+
+    # ✅ 추가
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']  # 관리자 생성 시 필수 필드
