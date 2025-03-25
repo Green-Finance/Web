@@ -10,8 +10,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'profile_pic', 'intro']
         read_only_fields = fields
 
-
-
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
