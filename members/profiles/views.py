@@ -1,17 +1,20 @@
-from .serializer import UserProfileSerializer, UserUpdateSerializer, PasswordChangeSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status, permissions
 
 from django.contrib.auth import get_user_model
-from .serializer import PostSerializer
-from .models import Post, PostLike
+from .serializer import PostSerializer, CommentSerializer, UserProfileSerializer, UserUpdateSerializer, PasswordChangeSerializer
+from .models import Post, PostLike, Comment
 
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.dateparse import parse_datetime
 
+from zoneinfo import ZoneInfo
+from datetime import datetime
+
+# 기본 유저 모델
 User = get_user_model()
 
 
@@ -145,3 +148,97 @@ class SyncBoardLikeAPIView(APIView):
 
         like_count = post.likes.count()
         return Response({"detail": action, "like_count": like_count}, status=status.HTTP_200_OK)
+
+
+class SyncCommentAPIView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        """
+        FastAPI로부터 댓글 데이터를 받아 저장합니다.
+        요청 JSON 예시:
+        {
+            "user_id": 1,
+            "board_id": 3,
+            "content": "댓글 내용입니다.",
+            "created_at": "2025-03-26T06:58:08.775688",  # (옵션)
+            "updated_at": "2025-03-26T06:58:08.775688"   # (옵션)
+        }
+        """
+        data = request.data
+        user_id = data.get('user_id')
+        board_id = data.get('board_id')
+        content = data.get('content')
+
+        if not user_id or not board_id or not content:
+            return Response({"detail": "user_id, board_id, content 필드가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 사용자 조회
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # 게시글 조회 (Post 모델; 실제 모델 이름에 맞게 수정)
+        try:
+            board = Post.objects.get(id=board_id)
+        except Post.DoesNotExist:
+            return Response({'detail': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # datetime 파싱 (옵션: 값이 없으면 현재 시간 사용)
+        created_at = parse_datetime(data.get('created_at')) or datetime.now(ZoneInfo("Asia/Seoul"))
+        updated_at = parse_datetime(data.get('updated_at')) or datetime.now(ZoneInfo("Asia/Seoul"))
+
+        # 댓글 생성
+        comment = Comment.objects.create(
+            board=board,
+            user=user,
+            content=content,
+            created_at=created_at,
+            updated_at=updated_at
+        )
+
+        serializer = CommentSerializer(comment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class SyncCommentUpdateAPIView(APIView):
+    permission_classes = [permissions.AllowAny]  # 내부 동기화용, 인증 필요 없음
+
+    def put(self, request, comment_id):
+        """
+        FastAPI로부터 전달받은 댓글 데이터를 이용해 댓글을 업데이트합니다.
+        요청 JSON 예시:
+        {
+            "content": "새로운 댓글 내용",
+            "created_at": "2025-03-26T06:58:08.775688",  # 옵션
+            "updated_at": "2025-03-26T06:58:08.775688"   # 옵션
+        }
+        """
+        data = request.data
+        comment = get_object_or_404(Comment, id=comment_id)
+
+        # 전달받은 값으로 댓글 업데이트 (값이 없으면 기존 값 유지)
+        comment.content = data.get('content', comment.content)
+        created_at = parse_datetime(data.get('created_at'))
+        updated_at = parse_datetime(data.get('updated_at'))
+        if created_at:
+            comment.created_at = created_at
+        if updated_at:
+            comment.updated_at = updated_at
+
+        comment.save()
+        return Response({"detail": "Comment updated successfully."}, status=status.HTTP_200_OK)
+
+
+
+class SyncCommentDeleteAPIView(APIView):
+    permission_classes = [permissions.AllowAny]  # 내부 동기화용, 인증 필요 없음
+
+    def delete(self, request, comment_id):
+        """
+        FastAPI로부터 전달받은 댓글 삭제 요청을 처리.
+        """
+        comment = get_object_or_404(Comment, id=comment_id)
+        comment.delete()
+        return Response({"detail": "Comment deleted successfully."}, status=status.HTTP_200_OK)
