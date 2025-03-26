@@ -20,3 +20,5 @@ class User(AbstractUser):
     # ✅ 추가
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']  # 관리자 생성 시 필수 필드
+
+
