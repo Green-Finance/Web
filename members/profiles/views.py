@@ -6,8 +6,9 @@ from rest_framework import status, permissions
 
 from django.contrib.auth import get_user_model
 from .serializer import PostSerializer
-from .models import Post
+from .models import Post, PostLike
 
+from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.dateparse import parse_datetime
 
@@ -115,3 +116,32 @@ class SyncPostDeleteAPIView(APIView):
             return Response({"detail": "게시글이 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
         except ObjectDoesNotExist:
             return Response({"detail": "해당 게시글을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class SyncBoardLikeAPIView(APIView):
+    # 인증 없이 접근하도록 설정 (내부 동기화용)
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, post_id):
+        """
+        FastAPI나 Celery Task로부터 게시글 좋아요 토글 요청을 받아 처리합니다.
+        요청 본문에 user_id를 포함시켜야 합니다.
+        """
+        data = request.data
+        user_id = data.get("user_id")
+        if not user_id:
+            return Response({"detail": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 해당 게시글을 가져옵니다.
+        post = get_object_or_404(Post, id=post_id)
+
+        # 좋아요 토글: 이미 좋아요가 있으면 삭제하고, 없으면 생성합니다.
+        like, created = PostLike.objects.get_or_create(user_id=user_id, post=post)
+        if not created:
+            like.delete()
+            action = "Unliked"
+        else:
+            action = "Liked"
+
+        like_count = post.likes.count()
+        return Response({"detail": action, "like_count": like_count}, status=status.HTTP_200_OK)

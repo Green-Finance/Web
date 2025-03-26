@@ -5,8 +5,12 @@ from core.database import get_db
 from dto.board import BoardCreate, BoardResponse
 from core.dependencies import get_current_user
 from dto.user import UserResponse
-from celery_task.tasks import notify_django_about_post, notify_django_about_post_delete, notify_django_about_post_update
-from models.model import User
+from celery_task.tasks import (notify_django_about_post,
+                               notify_django_about_post_delete,
+                               notify_django_about_post_update,
+                               notify_django_about_board_like
+                               )
+from models.model import User, BoardLike, Board
 
 router = APIRouter(
     prefix="/api/boards/v1",
@@ -113,3 +117,43 @@ def delete_board(
     return {
         "detail" : "삭제가 완료되었습니다."
     }
+
+
+############################################################################################
+
+
+# 게시글 좋아요
+@router.post("/{board_id}/like", status_code=status.HTTP_200_OK)
+def toggle_board_like_endpoint(
+        board_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    # 좋아요 상태를 DB에서 직접 확인
+    like = db.query(BoardLike).filter(
+        BoardLike.board_id == board_id,
+        BoardLike.user_id == current_user.id
+    ).first()
+
+    if like:
+        db.delete(like)
+        action = "Unliked"
+    else:
+        new_like = BoardLike(board_id=board_id, user_id=current_user.id)
+        db.add(new_like)
+        action = "Liked"
+
+    db.commit()
+
+    # 최신 좋아요 개수를 DB에서 직접 집계 <-- 추가
+    like_count = db.query(BoardLike).filter(BoardLike.board_id == board_id).count()
+
+    # 비동기처리 -> django profile로 보내기
+
+    notify_django_about_board_like.apply_async(
+        args=[board_id, current_user.id, action],
+        queue="board"
+    )
+
+    return {"detail": action, "like_count": like_count}
+

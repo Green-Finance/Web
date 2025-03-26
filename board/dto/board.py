@@ -16,3 +16,13 @@ class BoardResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class BoardLikeResponse(BaseModel):
+    id: int
+    board_id: int
+    user_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
