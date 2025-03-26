@@ -4,7 +4,8 @@ from .views import (UserProfileView,
                     PasswordChangeView,
                     SyncPostFromFastAPIView,
                     SyncPostDeleteAPIView,
-                    SyncPostUpdateAPIView
+                    SyncPostUpdateAPIView,
+                    SyncBoardLikeAPIView
                     )
 
 urlpatterns = [
@@ -14,4 +15,5 @@ urlpatterns = [
     path('sync/', SyncPostFromFastAPIView.as_view(), name='sync-post-from-fastapi'), # Celery로 받은 데이터
     path("sync/delete/<int:post_id>/", SyncPostDeleteAPIView.as_view(), name="sync-post-delete-fastapi"),
     path('sync/update/<int:post_id>/', SyncPostUpdateAPIView.as_view(), name="sync-post-update-fastapi"),
+    path("sync/<int:post_id>/board_like/", SyncBoardLikeAPIView.as_view(), name="toggle-post-like"),
 ]
