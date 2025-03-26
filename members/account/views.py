@@ -16,6 +16,8 @@ from .utils import send_password_reset_email_task
 from django.utils.encoding import force_str
 from django.conf import settings
 
+
+
 User = get_user_model()
 
 # 회원가입 API 뷰
@@ -77,8 +79,6 @@ class UserDeleteView(APIView):
         return Response({"message": "회원 탈퇴가 완료되었습니다."}, status=status.HTTP_200_OK)
 
 # 비밀번호 재설정 요청
-
-
 class PasswordResetRequestAPIView(APIView):
     permission_classes = [AllowAny]
 

@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-
+from .models import Post
 
 User = get_user_model()
 
@@ -42,3 +42,10 @@ class PasswordChangeSerializer(serializers.Serializer):
         user.set_password(new_password)
         user.save()
         return user
+
+class PostSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+    class Meta:
+        model = Post
+        fields = ['id', 'user', 'title', 'content', 'created_at', 'updated_at']

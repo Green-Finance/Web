@@ -18,7 +18,7 @@ SECRET_KEY = 'django-insecure-b7&6gg!t6-s@^32!qf#*o496#pf(9t0++xgdl1^h*ye0)il2i#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'account',
+    'profiles',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'drf_yasg',
@@ -86,8 +87,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'db_name'),
+        'USER': os.getenv('POSTGRES_USER', 'db_user'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'db_password'),
+        'HOST': os.getenv('POSTGRES_HOST', 'db_account'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
     }
 }
 
@@ -182,3 +187,5 @@ CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 # JSON 직렬화 설정
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+
+FASTAPI_SERVER_URL = os.getenv("BOARD_USER_API")
